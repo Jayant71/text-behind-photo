@@ -1,11 +1,10 @@
-
 import { useState, useRef } from "react";
 import { Upload, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ImageUploaderProps {
-  onImageUpload: (imageUrl: string, file: File) => void;
+  onImageUpload: (imageUrl: string, file: File, dimensions: { width: number; height: number }) => void;
   isProcessing: boolean;
 }
 
@@ -16,7 +15,12 @@ export const ImageUploader = ({ onImageUpload, isProcessing }: ImageUploaderProp
   const handleFileSelect = (file: File) => {
     if (file.type.startsWith('image/')) {
       const url = URL.createObjectURL(file);
-      onImageUpload(url, file);
+      const img = new Image();
+      img.onload = () => {
+        onImageUpload(url, file, { width: img.naturalWidth, height: img.naturalHeight });
+        URL.revokeObjectURL(url); // Clean up object URL
+      };
+      img.src = url;
     }
   };
 

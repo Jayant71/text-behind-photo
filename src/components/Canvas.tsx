@@ -11,6 +11,7 @@ interface CanvasProps {
   selectedLayer: string | null;
   onLayerSelect: (id: string | null) => void;
   onLayerUpdate: (id: string, updates: Partial<TextLayer>) => void;
+  originalImageDimensions: { width: number; height: number } | null;
 }
 
 interface InteractionState {
@@ -28,6 +29,7 @@ export const Canvas = ({
   selectedLayer,
   onLayerSelect,
   onLayerUpdate,
+  originalImageDimensions,
 }: CanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [interactionState, setInteractionState] = useState<InteractionState>({
@@ -37,14 +39,13 @@ export const Canvas = ({
     startPos: { x: 0, y: 0 },
     startLayer: null,
   });
-  const [canvasSize] = useState({ width: 800, height: 600 });
   const [loadedImages, setLoadedImages] = useState<{
     bgImg: HTMLImageElement | null;
     personImg: HTMLImageElement | null;
   }>({ bgImg: null, personImg: null });
 
   useEffect(() => {
-    if (processedImage) {
+    if (processedImage && originalImageDimensions) {
       const bgImg = new Image();
       bgImg.crossOrigin = "anonymous";
       const personImg = new Image();
@@ -56,6 +57,12 @@ export const Canvas = ({
       const checkAllLoaded = () => {
         if (bgLoaded && personLoaded) {
           setLoadedImages({ bgImg, personImg });
+          // Set canvas dimensions here based on the original image
+          const canvas = canvasRef.current;
+          if (canvas) {
+            canvas.width = originalImageDimensions.width;
+            canvas.height = originalImageDimensions.height;
+          }
           toast.success("Canvas images loaded.");
         }
       };
@@ -77,7 +84,7 @@ export const Canvas = ({
     } else {
       setLoadedImages({ bgImg: null, personImg: null });
     }
-  }, [processedImage]);
+  }, [processedImage, originalImageDimensions]);
 
   useEffect(() => {
     drawCanvas();
@@ -86,17 +93,19 @@ export const Canvas = ({
   const drawCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // If originalImageDimensions are not yet available, don't draw
+    if (!originalImageDimensions) return; 
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#ffffff"; // Or a transparent background if preferred
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (!loadedImages.bgImg || !loadedImages.personImg) {
       ctx.fillStyle = '#f1f5f9';
-      ctx.fillRect(50, 50, canvas.width - 100, canvas.height - 100);
+      ctx.fillRect(0, 0, canvas.width, canvas.height); // Cover the whole canvas
       ctx.fillStyle = '#64748b';
       ctx.font = '24px Arial';
       ctx.textAlign = 'center';
@@ -110,7 +119,7 @@ export const Canvas = ({
 
     const sortedLayers = [...textLayers].sort((a, b) => a.zIndex - b.zIndex);
     
-    // Draw background
+    // Draw background, ensuring it scales to canvas dimensions if different
     ctx.drawImage(loadedImages.bgImg, 0, 0, canvas.width, canvas.height);
 
     // Draw text layers that are behind person
@@ -363,7 +372,7 @@ export const Canvas = ({
 
   const downloadImage = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !originalImageDimensions) return;
     
     // Deselect layer before downloading
     const currentSelected = selectedLayer;
@@ -371,9 +380,19 @@ export const Canvas = ({
 
     // Redraw canvas without selection handles
     setTimeout(() => {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = originalImageDimensions.width;
+      tempCanvas.height = originalImageDimensions.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) return;
+
+      // Draw current canvas content to temp canvas
+      // This ensures we are downloading what is currently rendered at original dimensions
+      tempCtx.drawImage(canvas, 0, 0, originalImageDimensions.width, originalImageDimensions.height);
+
       const link = document.createElement('a');
       link.download = 'text-behind-image.png';
-      link.href = canvas.toDataURL();
+      link.href = tempCanvas.toDataURL();
       link.click();
       
       toast.success("Image downloaded successfully!");
@@ -402,9 +421,8 @@ export const Canvas = ({
       <div className="border border-border rounded-lg overflow-hidden shadow-md bg-white dark:bg-slate-800">
         <canvas
           ref={canvasRef}
-          width={canvasSize.width}
-          height={canvasSize.height}
-          className="max-w-full h-auto cursor-pointer"
+          // width and height are now set dynamically in useEffect
+          className="max-w-full max-h-full h-auto cursor-pointer" // Added max-h-full
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}

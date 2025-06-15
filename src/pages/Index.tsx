@@ -30,17 +30,21 @@ export interface ProcessedImage {
   segmentedPerson: string;
   background: string;
   detectionDetails: any;
+  originalWidth: number;
+  originalHeight: number;
 }
 
 const Index = () => {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [originalImageDimensions, setOriginalImageDimensions] = useState<{width: number, height: number} | null>(null);
   const [processedImage, setProcessedImage] = useState<ProcessedImage | null>(null);
   const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleImageUpload = async (imageUrl: string, file: File) => {
+  const handleImageUpload = async (imageUrl: string, file: File, dimensions: {width: number, height: number}) => {
     setOriginalImage(imageUrl);
+    setOriginalImageDimensions(dimensions);
     setIsProcessing(true);
     setProcessedImage(null);
     setTextLayers([]);
@@ -69,6 +73,8 @@ const Index = () => {
         segmentedPerson: result.segmented_person_image_base64,
         background: result.background_image_base64,
         detectionDetails: result.detection_details,
+        originalWidth: dimensions.width,
+        originalHeight: dimensions.height,
       });
       toast.success("Image processed successfully!");
     } catch (error) {
@@ -236,6 +242,7 @@ const Index = () => {
                 selectedLayer={selectedLayer}
                 onLayerSelect={setSelectedLayer}
                 onLayerUpdate={updateTextLayer}
+                originalImageDimensions={originalImageDimensions}
               />
           </div>
         </ResizablePanel>
