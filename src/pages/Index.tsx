@@ -45,7 +45,7 @@ const Index = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('https://jayant17-textbehindphoto-backend.hf.space/image/detect', {
+      const response = await fetch('https://jayant17-textbehindphoto-backend.hf.space/api/image/detect', {
         method: 'POST',
         body: formData,
       });
