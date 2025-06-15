@@ -138,11 +138,25 @@ export const Canvas = ({
     // Set text properties
     ctx.font = `${layer.fontSize}px ${layer.fontFamily}`;
     ctx.fillStyle = layer.color;
-    ctx.textAlign = 'center';
+    ctx.textAlign = layer.textAlign || 'center';
     ctx.textBaseline = 'middle';
     
-    // Draw text
-    ctx.fillText(layer.content, 0, 0);
+    // Draw text (multiline support)
+    const lines = layer.content.split('\n');
+    const lineHeight = layer.fontSize * 1.2;
+    const totalTextHeight = (lines.length - 1) * lineHeight;
+    const startY = -totalTextHeight / 2;
+    
+    let startX = 0;
+    if (ctx.textAlign === 'left') {
+      startX = -layer.width / 2;
+    } else if (ctx.textAlign === 'right') {
+      startX = layer.width / 2;
+    }
+
+    lines.forEach((line, index) => {
+      ctx.fillText(line, startX, startY + (index * lineHeight));
+    });
     
     // Draw selection handles if selected
     if (selectedLayer === layer.id) {
@@ -337,7 +351,9 @@ export const Canvas = ({
         const newX = newCenterX + toTopLeftX;
         const newY = newCenterY + toTopLeftY;
         
-        onLayerUpdate(layerId, { width: newWidth, height: newHeight, x: newX, y: newY });
+        const newFontSize = Math.max(10, Math.round(newHeight / (startLayer.content.split('\n').length || 1) * 0.8));
+
+        onLayerUpdate(layerId, { width: newWidth, height: newHeight, x: newX, y: newY, fontSize: newFontSize });
     }
   };
 

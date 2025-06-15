@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ImageUploader } from "@/components/ImageUploader";
 import { Canvas } from "@/components/Canvas";
@@ -24,6 +23,7 @@ export interface TextLayer {
   height: number;
   zIndex: number;
   isBehindPerson: boolean;
+  textAlign: 'left' | 'center' | 'right';
 }
 
 export interface ProcessedImage {
@@ -93,6 +93,7 @@ const Index = () => {
       height: 60,
       zIndex: textLayers.length,
       isBehindPerson: false,
+      textAlign: 'center',
     };
     
     setTextLayers([...textLayers, newLayer]);

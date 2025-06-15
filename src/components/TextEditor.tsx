@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Type, Palette, RotateCw, Move, Eye, EyeOff } from "lucide-react";
+import { Type, Palette, RotateCw, Move, Eye, EyeOff, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 interface TextEditorProps {
   layer: TextLayer;
@@ -47,11 +48,12 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
         {/* Text Content */}
         <div>
           <Label htmlFor="content">Text Content</Label>
-          <Input
+          <Textarea
             id="content"
             value={layer.content}
             onChange={(e) => onUpdate({ content: e.target.value })}
             placeholder="Enter text..."
+            rows={3}
           />
         </div>
 
@@ -73,6 +75,37 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Text alignment */}
+        <div>
+          <Label>Alignment</Label>
+          <div className="flex items-center gap-2 mt-2">
+            <Button
+              variant={layer.textAlign === 'left' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => onUpdate({ textAlign: 'left' })}
+              title="Align Left"
+            >
+              <AlignLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={layer.textAlign === 'center' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => onUpdate({ textAlign: 'center' })}
+              title="Align Center"
+            >
+              <AlignCenter className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={layer.textAlign === 'right' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => onUpdate({ textAlign: 'right' })}
+              title="Align Right"
+            >
+              <AlignRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Font Size */}
