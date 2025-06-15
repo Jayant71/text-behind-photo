@@ -1,0 +1,195 @@
+
+import { TextLayer } from "@/pages/Index";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Type, Palette, RotateCw, Move, Eye, EyeOff } from "lucide-react";
+
+interface TextEditorProps {
+  layer: TextLayer;
+  onUpdate: (updates: Partial<TextLayer>) => void;
+}
+
+export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
+  const fontFamilies = [
+    "Arial",
+    "Helvetica",
+    "Times New Roman",
+    "Georgia",
+    "Verdana",
+    "Comic Sans MS",
+    "Impact",
+    "Trebuchet MS",
+    "Arial Black",
+    "Courier New",
+  ];
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6">
+      <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+        <Type className="w-5 h-5 mr-2" />
+        Text Properties
+      </h3>
+
+      <div className="space-y-4">
+        {/* Text Content */}
+        <div>
+          <Label htmlFor="content">Text Content</Label>
+          <Input
+            id="content"
+            value={layer.content}
+            onChange={(e) => onUpdate({ content: e.target.value })}
+            placeholder="Enter text..."
+          />
+        </div>
+
+        {/* Font Family */}
+        <div>
+          <Label>Font Family</Label>
+          <Select
+            value={layer.fontFamily}
+            onValueChange={(value) => onUpdate({ fontFamily: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {fontFamilies.map((font) => (
+                <SelectItem key={font} value={font}>
+                  <span style={{ fontFamily: font }}>{font}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Font Size */}
+        <div>
+          <Label>Font Size: {layer.fontSize}px</Label>
+          <Slider
+            value={[layer.fontSize]}
+            onValueChange={([value]) => onUpdate({ fontSize: value })}
+            min={12}
+            max={200}
+            step={1}
+            className="mt-2"
+          />
+        </div>
+
+        {/* Color */}
+        <div>
+          <Label htmlFor="color">Color</Label>
+          <div className="flex items-center space-x-2 mt-1">
+            <Palette className="w-4 h-4 text-slate-500" />
+            <Input
+              id="color"
+              type="color"
+              value={layer.color}
+              onChange={(e) => onUpdate({ color: e.target.value })}
+              className="w-16 h-10 p-1 border rounded"
+            />
+            <Input
+              value={layer.color}
+              onChange={(e) => onUpdate({ color: e.target.value })}
+              placeholder="#000000"
+              className="flex-1"
+            />
+          </div>
+        </div>
+
+        {/* Opacity */}
+        <div>
+          <Label>Opacity: {Math.round(layer.opacity * 100)}%</Label>
+          <Slider
+            value={[layer.opacity]}
+            onValueChange={([value]) => onUpdate({ opacity: value })}
+            min={0}
+            max={1}
+            step={0.01}
+            className="mt-2"
+          />
+        </div>
+
+        {/* Rotation */}
+        <div>
+          <Label className="flex items-center">
+            <RotateCw className="w-4 h-4 mr-1" />
+            Rotation: {layer.rotation}°
+          </Label>
+          <Slider
+            value={[layer.rotation]}
+            onValueChange={([value]) => onUpdate({ rotation: value })}
+            min={-180}
+            max={180}
+            step={1}
+            className="mt-2"
+          />
+        </div>
+
+        {/* Position */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>X Position</Label>
+            <Input
+              type="number"
+              value={layer.x}
+              onChange={(e) => onUpdate({ x: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+          <div>
+            <Label>Y Position</Label>
+            <Input
+              type="number"
+              value={layer.y}
+              onChange={(e) => onUpdate({ y: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+        </div>
+
+        {/* Size */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Width</Label>
+            <Input
+              type="number"
+              value={layer.width}
+              onChange={(e) => onUpdate({ width: parseInt(e.target.value) || 100 })}
+            />
+          </div>
+          <div>
+            <Label>Height</Label>
+            <Input
+              type="number"
+              value={layer.height}
+              onChange={(e) => onUpdate({ height: parseInt(e.target.value) || 50 })}
+            />
+          </div>
+        </div>
+
+        {/* Layer Position */}
+        <div>
+          <Label>Layer Position</Label>
+          <Button
+            variant={layer.isBehindPerson ? "default" : "outline"}
+            onClick={() => onUpdate({ isBehindPerson: !layer.isBehindPerson })}
+            className="w-full mt-2"
+          >
+            {layer.isBehindPerson ? (
+              <>
+                <EyeOff className="w-4 h-4 mr-2" />
+                Behind Person
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4 mr-2" />
+                In Front of Person
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
