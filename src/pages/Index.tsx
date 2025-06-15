@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ImageUploader } from "@/components/ImageUploader";
 import { Canvas } from "@/components/Canvas";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { PanelLeft, PanelRight, Text, Layers as LayersIcon } from "lucide-react";
+import { PanelLeft, PanelRight, Text, Layers as LayersIcon, PlusCircle } from "lucide-react";
 
 export interface TextLayer {
   id: string;
@@ -148,13 +147,6 @@ const Index = () => {
           <span>Text Behind Image</span>
         </a>
         <div className="ml-auto flex items-center gap-2">
-           <Button 
-              onClick={addTextLayer}
-              disabled={!processedImage}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Add Text Layer
-            </Button>
           <ThemeToggle />
         </div>
       </header>
@@ -166,6 +158,14 @@ const Index = () => {
               onImageUpload={handleImageUpload}
               isProcessing={isProcessing}
             />
+            <Button 
+              onClick={addTextLayer}
+              disabled={!processedImage}
+              className="w-full"
+            >
+              <PlusCircle className="mr-2 h-4 w-4"/>
+              Add Text
+            </Button>
             <LayerManager
               textLayers={textLayers}
               selectedLayer={selectedLayer}
