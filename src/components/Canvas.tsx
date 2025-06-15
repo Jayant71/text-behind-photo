@@ -57,6 +57,10 @@ export const Canvas = ({
       return;
     }
 
+    console.log('ProcessedImage data:', processedImage);
+    console.log('Background image URL length:', processedImage.background?.length);
+    console.log('Segmented person URL length:', processedImage.segmentedPerson?.length);
+
     // Sort layers by z-index and whether they're behind person
     const sortedLayers = [...textLayers].sort((a, b) => {
       if (a.isBehindPerson !== b.isBehindPerson) {
@@ -67,17 +71,25 @@ export const Canvas = ({
 
     try {
       // Load background image
+      console.log('Loading background image...');
       const bgImg = new Image();
       bgImg.crossOrigin = 'anonymous';
       
       await new Promise((resolve, reject) => {
-        bgImg.onload = resolve;
-        bgImg.onerror = reject;
+        bgImg.onload = () => {
+          console.log('Background image loaded successfully', bgImg.naturalWidth, 'x', bgImg.naturalHeight);
+          resolve(bgImg);
+        };
+        bgImg.onerror = (error) => {
+          console.error('Background image failed to load:', error);
+          reject(error);
+        };
         bgImg.src = processedImage.background;
       });
 
       // Draw background
       ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      console.log('Background image drawn to canvas');
       
       // Draw text layers that are behind person
       sortedLayers.filter(layer => layer.isBehindPerson).forEach(layer => {
@@ -85,21 +97,31 @@ export const Canvas = ({
       });
 
       // Load and draw segmented person
+      console.log('Loading segmented person image...');
       const personImg = new Image();
       personImg.crossOrigin = 'anonymous';
       
       await new Promise((resolve, reject) => {
-        personImg.onload = resolve;
-        personImg.onerror = reject;
+        personImg.onload = () => {
+          console.log('Segmented person image loaded successfully', personImg.naturalWidth, 'x', personImg.naturalHeight);
+          resolve(personImg);
+        };
+        personImg.onerror = (error) => {
+          console.error('Segmented person image failed to load:', error);
+          reject(error);
+        };
         personImg.src = processedImage.segmentedPerson;
       });
 
       ctx.drawImage(personImg, 0, 0, canvas.width, canvas.height);
+      console.log('Segmented person image drawn to canvas');
       
       // Draw text layers that are in front of person
       sortedLayers.filter(layer => !layer.isBehindPerson).forEach(layer => {
         drawTextLayer(ctx, layer);
       });
+
+      console.log('Canvas drawing completed successfully');
 
     } catch (error) {
       console.error('Error loading images:', error);
@@ -108,6 +130,7 @@ export const Canvas = ({
       ctx.font = '20px Arial';
       ctx.textAlign = 'center';
       ctx.fillText('Error loading processed images', canvas.width / 2, canvas.height / 2);
+      ctx.fillText('Check console for details', canvas.width / 2, canvas.height / 2 + 30);
     }
   };
 
