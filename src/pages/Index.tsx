@@ -217,8 +217,8 @@ const Index = () => {
     <div className="h-screen w-screen flex flex-col bg-background text-foreground">
       <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6 shrink-0">
         <a href="/" className="flex items-center gap-2 font-semibold">
-          <Text className="h-6 w-6" />
-          <span className="text-lg">Text Behind Image</span>
+          
+          <span className="text-lg">TextBehindImage</span>
         </a>
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
