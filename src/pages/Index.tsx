@@ -40,7 +40,7 @@ const Index = () => {
   const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [fileName, setFileName] = useState<string>('text-behind-image.png');
+  const [fileName, setFileName] = useState<string>('');
 
   const handleImageUpload = async (imageUrl: string, file: File) => {
     setOriginalImage(imageUrl);
@@ -72,6 +72,7 @@ const Index = () => {
         detectionDetails: result.detection_details,
       });
 
+      setFileName(`text-behind-${Date.now()}.png`);
       toast.success("Image processed successfully!");
     } catch (error) {
       console.error('Processing error:', error);
@@ -229,14 +230,6 @@ const Index = () => {
               onImageUpload={handleImageUpload}
               isProcessing={isProcessing}
             />
-            <Button 
-              onClick={addTextLayer}
-              disabled={!processedImage}
-              className="w-full"
-            >
-              <PlusCircle className="mr-2 h-4 w-4"/>
-              Add Text
-            </Button>
             
             {processedImage && (
               <div className="space-y-4 pt-4 border-t border-border">
@@ -255,6 +248,15 @@ const Index = () => {
                 </Button>
               </div>
             )}
+
+            <Button 
+              onClick={addTextLayer}
+              disabled={!processedImage}
+              className="w-full"
+            >
+              <PlusCircle className="mr-2 h-4 w-4"/>
+              Add Text
+            </Button>
 
             <LayerManager
               textLayers={textLayers}
