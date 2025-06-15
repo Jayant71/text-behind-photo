@@ -13,6 +13,14 @@ interface CanvasProps {
   onLayerUpdate: (id: string, updates: Partial<TextLayer>) => void;
 }
 
+interface InteractionState {
+  type: 'move' | 'resize' | 'rotate' | null;
+  layerId: string | null;
+  handle: string | null;
+  startPos: { x: number; y: number };
+  startLayer: TextLayer | null;
+}
+
 export const Canvas = ({
   originalImage,
   processedImage,
@@ -22,12 +30,14 @@ export const Canvas = ({
   onLayerUpdate,
 }: CanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [isRotating, setIsRotating] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
-  const [activeHandle, setActiveHandle] = useState<string | null>(null);
+  const [interactionState, setInteractionState] = useState<InteractionState>({
+    type: null,
+    layerId: null,
+    handle: null,
+    startPos: { x: 0, y: 0 },
+    startLayer: null,
+  });
+  const [canvasSize] = useState({ width: 800, height: 600 });
   const [loadedImages, setLoadedImages] = useState<{
     bgImg: HTMLImageElement | null;
     personImg: HTMLImageElement | null;
@@ -40,25 +50,30 @@ export const Canvas = ({
       const personImg = new Image();
       personImg.crossOrigin = "anonymous";
 
-      const bgPromise = new Promise((resolve, reject) => {
-        bgImg.onload = resolve;
-        bgImg.onerror = reject;
-      });
-      const personPromise = new Promise((resolve, reject) => {
-        personImg.onload = resolve;
-        personImg.onerror = reject;
-      });
+      let bgLoaded = false;
+      let personLoaded = false;
 
+      const checkAllLoaded = () => {
+        if (bgLoaded && personLoaded) {
+          setLoadedImages({ bgImg, personImg });
+          toast.success("Canvas images loaded.");
+        }
+      };
+
+      bgImg.onload = () => { bgLoaded = true; checkAllLoaded(); };
+      personImg.onload = () => { personLoaded = true; checkAllLoaded(); };
+      
+      const onError = (e: any) => {
+        console.error("Error loading image for canvas", e);
+        toast.error("Failed to load images for canvas.");
+        setLoadedImages({ bgImg: null, personImg: null });
+      }
+      bgImg.onerror = onError;
+      personImg.onerror = onError;
+      
       bgImg.src = processedImage.background;
       personImg.src = processedImage.segmentedPerson;
 
-      Promise.all([bgPromise, personPromise])
-        .then(() => setLoadedImages({ bgImg, personImg }))
-        .catch((error) => {
-          console.error("Error loading one or more images for canvas", error);
-          toast.error("Failed to load images for canvas.");
-          setLoadedImages({ bgImg: null, personImg: null });
-        });
     } else {
       setLoadedImages({ bgImg: null, personImg: null });
     }
@@ -208,8 +223,8 @@ export const Canvas = ({
 
   const getClickedLayer = (pos: { x: number; y: number }) => {
     // Iterate backwards to select top-most layer
-    for (let i = textLayers.length - 1; i >= 0; i--) {
-      const layer = textLayers[i];
+    const sortedLayers = [...textLayers].sort((a, b) => a.zIndex - b.zIndex).reverse();
+    for (const layer of sortedLayers) {
       const { x, y, width, height, rotation } = layer;
       const centerX = x + width / 2;
       const centerY = y + height / 2;
@@ -239,112 +254,123 @@ export const Canvas = ({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     const pos = getMousePos(e);
+    let clickedLayerId: string | null = null;
+    let handle: string | null = null;
 
     if (selectedLayer) {
       const layer = textLayers.find((l) => l.id === selectedLayer);
       if (layer) {
-        const handle = getHandleAtPos(pos, layer);
+        handle = getHandleAtPos(pos, layer);
         if (handle) {
-          setActiveHandle(handle);
-          setIsDragging(false);
-          if (handle === "rotate") {
-            setIsRotating(true);
-          } else {
-            setIsResizing(true);
-          }
-          setDragStart(pos);
-          return;
+          clickedLayerId = selectedLayer;
         }
       }
     }
+    
+    if (!handle) {
+      clickedLayerId = getClickedLayer(pos);
+    }
 
-    const clickedLayerId = getClickedLayer(pos);
     onLayerSelect(clickedLayerId);
 
     if (clickedLayerId) {
-      setIsDragging(true);
-      setDragStart(pos);
+      const layer = textLayers.find((l) => l.id === clickedLayerId);
+      if (layer) {
+        const interactionType = handle ? (handle === 'rotate' ? 'rotate' : 'resize') : 'move';
+        setInteractionState({
+          type: interactionType,
+          layerId: clickedLayerId,
+          handle: handle,
+          startPos: pos,
+          startLayer: layer,
+        });
+      }
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!selectedLayer) return;
+    const { type, layerId, handle, startPos, startLayer } = interactionState;
+    if (!type || !layerId || !startLayer) return;
+
     const pos = getMousePos(e);
-    const layer = textLayers.find((l) => l.id === selectedLayer);
-    if (!layer) return;
 
-    const dx = pos.x - dragStart.x;
-    const dy = pos.y - dragStart.y;
+    if (type === 'move') {
+      const dx = pos.x - startPos.x;
+      const dy = pos.y - startPos.y;
+      onLayerUpdate(layerId, { x: startLayer.x + dx, y: startLayer.y + dy });
+    } else if (type === 'rotate') {
+      const centerX = startLayer.x + startLayer.width / 2;
+      const centerY = startLayer.y + startLayer.height / 2;
+      const startAngle = Math.atan2(startPos.y - centerY, startPos.x - centerX);
+      const currentAngle = Math.atan2(pos.y - centerY, pos.x - centerX);
+      const angleDiff = currentAngle - startAngle;
+      onLayerUpdate(layerId, { rotation: startLayer.rotation + angleDiff * (180 / Math.PI) });
+    } else if (type === 'resize' && handle) {
+        const oppositeHandleMap: Record<string, string> = {
+            "top-left": "bottom-right", "top-right": "bottom-left",
+            "bottom-left": "top-right", "bottom-right": "top-left",
+        };
+        const anchorHandleName = oppositeHandleMap[handle];
+        if (!anchorHandleName) return;
 
-    if (isResizing && activeHandle) {
-      const oppositeHandleMap: Record<string, string> = {
-        "top-left": "bottom-right", "top-right": "bottom-left",
-        "bottom-left": "top-right", "bottom-right": "top-left",
-      };
-      const anchorHandleName = oppositeHandleMap[activeHandle];
-      if (!anchorHandleName) return;
+        const anchorPos = getHandleCoords(anchorHandleName, startLayer);
+        if (!anchorPos) return;
 
-      const anchorPos = getHandleCoords(anchorHandleName, layer);
-      if (!anchorPos) return;
+        const angle = startLayer.rotation * Math.PI / 180;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const negAngle = -angle;
+        const cosN = Math.cos(negAngle);
+        const sinN = Math.sin(negAngle);
 
-      const angle = (layer.rotation * Math.PI) / 180;
-      const negAngle = -angle;
-      const cosN = Math.cos(negAngle);
-      const sinN = Math.sin(negAngle);
+        const vecX = pos.x - anchorPos.x;
+        const vecY = pos.y - anchorPos.y;
 
-      const vecX = pos.x - anchorPos.x;
-      const vecY = pos.y - anchorPos.y;
+        const newWidth = Math.max(10, Math.abs(vecX * cosN - vecY * sinN));
+        const newHeight = Math.max(10, Math.abs(vecX * sinN + vecY * cosN));
 
-      const newWidth = Math.abs(vecX * cosN - vecY * sinN);
-      const newHeight = Math.abs(vecX * sinN + vecY * cosN);
-      
-      const newCenterX = anchorPos.x + vecX / 2;
-      const newCenterY = anchorPos.y + vecY / 2;
-      
-      const cos = Math.cos(angle);
-      const sin = Math.sin(angle);
-      
-      const toTopLeftX = (-newWidth / 2) * cos - (-newHeight / 2) * sin;
-      const toTopLeftY = (-newWidth / 2) * sin + (-newHeight / 2) * cos;
-      const newX = newCenterX + toTopLeftX;
-      const newY = newCenterY + toTopLeftY;
-
-      onLayerUpdate(selectedLayer, { width: newWidth, height: newHeight, x: newX, y: newY });
-
-    } else if (isRotating) {
-      const centerX = layer.x + layer.width / 2;
-      const centerY = layer.y + layer.height / 2;
-      const angle = Math.atan2(pos.y - centerY, pos.x - centerX) * (180 / Math.PI);
-      onLayerUpdate(selectedLayer, { rotation: angle + 90 });
-    } else if (isDragging) {
-      onLayerUpdate(selectedLayer, { x: layer.x + dx, y: layer.y + dy });
-      setDragStart(pos);
+        const newCenterX = anchorPos.x + vecX / 2;
+        const newCenterY = anchorPos.y + vecY / 2;
+        
+        const toTopLeftX = (-newWidth / 2) * cos - (-newHeight / 2) * sin;
+        const toTopLeftY = (-newWidth / 2) * sin + (-newHeight / 2) * cos;
+        const newX = newCenterX + toTopLeftX;
+        const newY = newCenterY + toTopLeftY;
+        
+        onLayerUpdate(layerId, { width: newWidth, height: newHeight, x: newX, y: newY });
     }
   };
 
   const handleMouseUp = () => {
-    setIsDragging(false);
-    setIsResizing(false);
-    setIsRotating(false);
-    setActiveHandle(null);
+    setInteractionState({ type: null, layerId: null, handle: null, startPos: { x: 0, y: 0 }, startLayer: null });
   };
 
   const downloadImage = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const link = document.createElement('a');
-    link.download = 'text-behind-image.png';
-    link.href = canvas.toDataURL();
-    link.click();
-    
-    toast.success("Image downloaded successfully!");
+    // Deselect layer before downloading
+    const currentSelected = selectedLayer;
+    onLayerSelect(null);
+
+    // Redraw canvas without selection handles
+    setTimeout(() => {
+      const link = document.createElement('a');
+      link.download = 'text-behind-image.png';
+      link.href = canvas.toDataURL();
+      link.click();
+      
+      toast.success("Image downloaded successfully!");
+      
+      // Reselect layer
+      onLayerSelect(currentSelected);
+    }, 100);
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div className="text-sm text-slate-600">
+        <div className="text-sm text-muted-foreground">
           {processedImage ? "Click and drag text layers to position them" : "Upload an image to start editing"}
         </div>
         <Button
@@ -357,12 +383,12 @@ export const Canvas = ({
         </Button>
       </div>
       
-      <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+      <div className="border border-border rounded-lg overflow-hidden shadow-md bg-white dark:bg-slate-800">
         <canvas
           ref={canvasRef}
           width={canvasSize.width}
           height={canvasSize.height}
-          className="max-w-full cursor-pointer"
+          className="max-w-full h-auto cursor-pointer"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
