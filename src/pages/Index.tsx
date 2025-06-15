@@ -93,7 +93,7 @@ const Index = () => {
       y: 100,
       fontSize: 48,
       fontFamily: "Arial",
-      color: "#000000",
+      color: "hsl(var(--foreground))", // Use foreground color for text
       opacity: 1,
       rotation: 0,
       width: 200,
@@ -199,23 +199,9 @@ const Index = () => {
         </div>
       </header>
       <ResizablePanelGroup direction="horizontal" className="flex-1">
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-          <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto bg-muted">
-            <h2 className="text-lg font-semibold flex items-center"><PanelLeft className="mr-2 h-5 w-5"/>Controls</h2>
-            <ImageUploader 
-              onImageUpload={handleImageUpload}
-              isProcessing={isProcessing}
-            />
-            
-            <Button 
-              onClick={addTextLayer}
-              disabled={!processedImage}
-              className="w-full"
-            >
-              <PlusCircle className="mr-2 h-4 w-4"/>
-              Add Text
-            </Button>
-
+        <ResizablePanel defaultSize={25} minSize={20} className="flex flex-col">
+          <div className="p-4 space-y-4 overflow-auto bg-card">
+            <ImageUploader onImageUpload={handleImageUpload} isProcessing={isProcessing} />
             <LayerManager
               textLayers={textLayers}
               selectedLayer={selectedLayer}
@@ -223,42 +209,41 @@ const Index = () => {
               onLayerDelete={deleteTextLayer}
               onMoveUp={moveLayerUp}
               onMoveDown={moveLayerDown}
-              onToggleBehindPerson={(id) => {
-                const layer = textLayers.find(l => l.id === id);
-                if (layer) {
-                  updateTextLayer(id, { isBehindPerson: !layer.isBehindPerson });
-                }
-              }}
+              onToggleBehindPerson={(id) => updateTextLayer(id, { isBehindPerson: !textLayers.find(l => l.id === id)?.isBehindPerson })}
             />
+            <Button onClick={addTextLayer} className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800">
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Add Text Layer
+            </Button>
           </div>
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={60} minSize={40}>
-          <div className="flex items-center justify-center h-full bg-muted p-4 overflow-auto">
-             <Canvas
-                originalImage={originalImage}
-                processedImage={processedImage}
-                textLayers={textLayers}
-                selectedLayer={selectedLayer}
-                onLayerSelect={setSelectedLayer}
-                onLayerUpdate={updateTextLayer}
-                originalImageDimensions={originalImageDimensions}
-              />
-          </div>
+        <ResizablePanel defaultSize={50} minSize={30} className="bg-muted/40 dark:bg-muted/10 flex items-center justify-center">
+          <Canvas
+            originalImage={originalImage}
+            originalImageDimensions={originalImageDimensions}
+            processedImage={processedImage}
+            textLayers={textLayers}
+            selectedLayer={selectedLayer}
+            onLayerSelect={setSelectedLayer}
+            onLayerUpdate={updateTextLayer}
+          />
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-          <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto bg-muted">
-            <h2 className="text-lg font-semibold flex items-center"><PanelRight className="mr-2 h-5 w-5"/>Properties</h2>
+        <ResizablePanel defaultSize={25} minSize={20}>
+          <div className="p-4 bg-card h-full overflow-auto">
             {selectedLayerData ? (
               <TextEditor
                 layer={selectedLayerData}
                 onUpdate={(updates) => updateTextLayer(selectedLayerData.id, updates)}
               />
             ) : (
-               <div className="text-center text-muted-foreground p-8">
-                <LayersIcon className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700 mb-4" />
-                <p>Select a layer to see its properties</p>
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Text className="w-12 h-12 text-slate-400 dark:text-slate-600 mb-4" />
+                <p className="text-slate-600 dark:text-slate-400 font-medium">Select a text layer to edit</p>
+                <p className="text-sm text-slate-500 dark:text-slate-500">
+                  Or add a new text layer from the left panel.
+                </p>
               </div>
             )}
           </div>

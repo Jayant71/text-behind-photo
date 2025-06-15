@@ -44,6 +44,22 @@ export const Canvas = ({
     personImg: HTMLImageElement | null;
   }>({ bgImg: null, personImg: null });
 
+  // Effect to set initial canvas size or when originalImageDimensions changes
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      if (originalImageDimensions) {
+        canvas.width = originalImageDimensions.width;
+        canvas.height = originalImageDimensions.height;
+      } else {
+        // Default placeholder size if no image is loaded
+        canvas.width = 500; // Or any other placeholder width
+        canvas.height = 300; // Or any other placeholder height
+      }
+      drawCanvas(); // Redraw with new dimensions
+    }
+  }, [originalImageDimensions]);
+
   useEffect(() => {
     if (processedImage && originalImageDimensions) {
       const bgImg = new Image();
@@ -83,34 +99,39 @@ export const Canvas = ({
 
     } else {
       setLoadedImages({ bgImg: null, personImg: null });
+      // If processedImage is null (e.g. on initial load or after clearing an image)
+      // ensure the canvas is drawn with placeholder content or cleared.
+      drawCanvas(); 
     }
   }, [processedImage, originalImageDimensions]);
 
   useEffect(() => {
     drawCanvas();
-  }, [textLayers, selectedLayer, loadedImages]);
+  }, [textLayers, selectedLayer, loadedImages]); // Removed originalImageDimensions from here as it's handled above
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    // If originalImageDimensions are not yet available, don't draw
-    if (!originalImageDimensions) return; 
-
+    
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#ffffff"; // Or a transparent background if preferred
+    // Use a theme-aware background color for the canvas itself
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    ctx.fillStyle = isDarkMode ? "hsl(var(--muted))" : "#ffffff"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (!loadedImages.bgImg || !loadedImages.personImg) {
-      ctx.fillStyle = '#f1f5f9';
-      ctx.fillRect(0, 0, canvas.width, canvas.height); // Cover the whole canvas
-      ctx.fillStyle = '#64748b';
-      ctx.font = '24px Arial';
+    // If no image is processed yet, or images are loading, show placeholder text
+    if (!processedImage || !loadedImages.bgImg || !loadedImages.personImg) {
+      ctx.fillStyle = isDarkMode ? 'hsl(var(--foreground))' : '#64748b';
+      ctx.font = '20px Arial';
       ctx.textAlign = 'center';
-      if (!processedImage) {
+      ctx.textBaseline = 'middle';
+      if (!originalImage) { // Changed condition to check for originalImage to show placeholder before any upload
         ctx.fillText('Upload an image to get started', canvas.width / 2, canvas.height / 2);
+      } else if (!processedImage) {
+        ctx.fillText('Processing image...', canvas.width / 2, canvas.height / 2);
       } else {
         ctx.fillText('Loading images...', canvas.width / 2, canvas.height / 2);
       }
@@ -406,7 +427,7 @@ export const Canvas = ({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div className="text-sm text-muted-foreground">
-          {processedImage ? "Click and drag text layers to position them" : "Upload an image to start editing"}
+          {originalImage ? "Click and drag text layers to position them" : "Upload an image to start editing"} 
         </div>
         <Button
           onClick={downloadImage}
@@ -418,11 +439,11 @@ export const Canvas = ({
         </Button>
       </div>
       
-      <div className="border border-border rounded-lg overflow-hidden shadow-md bg-white dark:bg-slate-800">
+      <div className="border border-border rounded-lg overflow-hidden shadow-md bg-card">
         <canvas
           ref={canvasRef}
           // width and height are now set dynamically in useEffect
-          className="max-w-full max-h-full h-auto cursor-pointer" // Added max-h-full
+          className="max-w-full max-h-full h-auto cursor-pointer display-block" // Added display-block to prevent extra space below canvas
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}

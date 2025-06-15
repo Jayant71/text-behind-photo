@@ -38,8 +38,8 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+    <div className="bg-card rounded-xl shadow-lg p-6 text-foreground">
+      <h3 className="text-lg font-semibold text-card-foreground mb-4 flex items-center">
         <Type className="w-5 h-5 mr-2" />
         Text Properties
       </h3>
@@ -47,29 +47,30 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
       <div className="space-y-4">
         {/* Text Content */}
         <div>
-          <Label htmlFor="content">Text Content</Label>
+          <Label htmlFor="content" className="text-muted-foreground">Text Content</Label>
           <Textarea
             id="content"
             value={layer.content}
             onChange={(e) => onUpdate({ content: e.target.value })}
             placeholder="Enter text..."
             rows={3}
+            className="bg-background text-foreground border-border placeholder:text-muted-foreground"
           />
         </div>
 
         {/* Font Family */}
         <div>
-          <Label>Font Family</Label>
+          <Label className="text-muted-foreground">Font Family</Label>
           <Select
             value={layer.fontFamily}
             onValueChange={(value) => onUpdate({ fontFamily: value })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-background text-foreground border-border">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover text-popover-foreground">
               {fontFamilies.map((font) => (
-                <SelectItem key={font} value={font}>
+                <SelectItem key={font} value={font} className="hover:bg-accent focus:bg-accent">
                   <span style={{ fontFamily: font }}>{font}</span>
                 </SelectItem>
               ))}
@@ -79,13 +80,14 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
 
         {/* Text alignment */}
         <div>
-          <Label>Alignment</Label>
+          <Label className="text-muted-foreground">Alignment</Label>
           <div className="flex items-center gap-2 mt-2">
             <Button
               variant={layer.textAlign === 'left' ? 'default' : 'outline'}
               size="icon"
               onClick={() => onUpdate({ textAlign: 'left' })}
               title="Align Left"
+              className={`${layer.textAlign === 'left' ? 'bg-primary text-primary-foreground' : 'bg-transparent border-border hover:bg-accent'}`}
             >
               <AlignLeft className="h-4 w-4" />
             </Button>
@@ -94,6 +96,7 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
               size="icon"
               onClick={() => onUpdate({ textAlign: 'center' })}
               title="Align Center"
+              className={`${layer.textAlign === 'center' ? 'bg-primary text-primary-foreground' : 'bg-transparent border-border hover:bg-accent'}`}
             >
               <AlignCenter className="h-4 w-4" />
             </Button>
@@ -102,6 +105,7 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
               size="icon"
               onClick={() => onUpdate({ textAlign: 'right' })}
               title="Align Right"
+              className={`${layer.textAlign === 'right' ? 'bg-primary text-primary-foreground' : 'bg-transparent border-border hover:bg-accent'}`}
             >
               <AlignRight className="h-4 w-4" />
             </Button>
@@ -110,34 +114,34 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
 
         {/* Font Size */}
         <div>
-          <Label>Font Size: {layer.fontSize}px</Label>
+          <Label className="text-muted-foreground">Font Size: {layer.fontSize}px</Label>
           <Slider
             value={[layer.fontSize]}
             onValueChange={([value]) => onUpdate({ fontSize: value })}
             min={12}
             max={200}
             step={1}
-            className="mt-2"
+            className="mt-2 [&>span:first-child]:bg-primary"
           />
         </div>
 
         {/* Color */}
         <div>
-          <Label htmlFor="color">Color</Label>
+          <Label htmlFor="color" className="text-muted-foreground">Color</Label>
           <div className="flex items-center space-x-2 mt-1">
-            <Palette className="w-4 h-4 text-slate-500" />
+            <Palette className="w-4 h-4 text-muted-foreground" />
             <Input
               id="color"
               type="color"
               value={layer.color}
               onChange={(e) => onUpdate({ color: e.target.value })}
-              className="w-16 h-10 p-1 border rounded"
+              className="w-16 h-10 p-1 border rounded bg-background border-border"
             />
             <Input
               value={layer.color}
               onChange={(e) => onUpdate({ color: e.target.value })}
               placeholder="#000000"
-              className="flex-1"
+              className="flex-1 bg-background text-foreground border-border placeholder:text-muted-foreground"
             />
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -145,7 +149,7 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
               <button
                 key={color}
                 title={color}
-                className={`w-6 h-6 rounded-full border transition-all ${layer.color.toLowerCase() === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
+                className={`w-6 h-6 rounded-full border border-border transition-all ${layer.color.toLowerCase() === color ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-background' : ''}`}
                 style={{ backgroundColor: color }}
                 onClick={() => onUpdate({ color })}
               />
@@ -155,20 +159,20 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
 
         {/* Opacity */}
         <div>
-          <Label>Opacity: {Math.round(layer.opacity * 100)}%</Label>
+          <Label className="text-muted-foreground">Opacity: {Math.round(layer.opacity * 100)}%</Label>
           <Slider
             value={[layer.opacity]}
             onValueChange={([value]) => onUpdate({ opacity: value })}
             min={0}
             max={1}
             step={0.01}
-            className="mt-2"
+            className="mt-2 [&>span:first-child]:bg-primary"
           />
         </div>
 
         {/* Rotation */}
         <div>
-          <Label className="flex items-center">
+          <Label className="flex items-center text-muted-foreground">
             <RotateCw className="w-4 h-4 mr-1" />
             Rotation: {layer.rotation}°
           </Label>
@@ -178,69 +182,68 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
             min={-180}
             max={180}
             step={1}
-            className="mt-2"
+            className="mt-2 [&>span:first-child]:bg-primary"
           />
         </div>
 
         {/* Position */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>X Position</Label>
+            <Label className="text-muted-foreground">X Position</Label>
             <Input
               type="number"
               value={layer.x}
               onChange={(e) => onUpdate({ x: parseInt(e.target.value) || 0 })}
+              className="bg-background text-foreground border-border"
             />
           </div>
           <div>
-            <Label>Y Position</Label>
+            <Label className="text-muted-foreground">Y Position</Label>
             <Input
               type="number"
               value={layer.y}
               onChange={(e) => onUpdate({ y: parseInt(e.target.value) || 0 })}
+              className="bg-background text-foreground border-border"
             />
           </div>
         </div>
 
-        {/* Size */}
+        {/* Dimensions */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Width</Label>
+            <Label className="text-muted-foreground">Width</Label>
             <Input
               type="number"
               value={layer.width}
-              onChange={(e) => onUpdate({ width: parseInt(e.target.value) || 100 })}
+              onChange={(e) => onUpdate({ width: parseInt(e.target.value) || 0 })}
+              className="bg-background text-foreground border-border"
             />
           </div>
           <div>
-            <Label>Height</Label>
+            <Label className="text-muted-foreground">Height</Label>
             <Input
               type="number"
               value={layer.height}
-              onChange={(e) => onUpdate({ height: parseInt(e.target.value) || 50 })}
+              onChange={(e) => onUpdate({ height: parseInt(e.target.value) || 0 })}
+              className="bg-background text-foreground border-border"
             />
           </div>
         </div>
 
         {/* Layer Position */}
         <div>
-          <Label>Layer Position</Label>
+          <Label className="text-muted-foreground">Layer Position</Label>
           <Button
-            variant={layer.isBehindPerson ? "default" : "outline"}
+            variant="outline"
             onClick={() => onUpdate({ isBehindPerson: !layer.isBehindPerson })}
-            className="w-full mt-2"
+            className="w-full mt-1 bg-transparent border-border hover:bg-accent"
           >
             {layer.isBehindPerson ? (
-              <>
-                <EyeOff className="w-4 h-4 mr-2" />
-                Behind Person
-              </>
+              <EyeOff className="w-4 h-4 mr-2" />
             ) : (
-              <>
-                <Eye className="w-4 h-4 mr-2" />
-                In Front of Person
-              </>
+              <Eye className="w-4 h-4 mr-2" />
             )}
+            {layer.isBehindPerson ? "Behind Person" : "In Front of Person"}
           </Button>
         </div>
       </div>
