@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ImageUploader } from "@/components/ImageUploader";
 import { Canvas } from "@/components/Canvas";
@@ -152,7 +153,7 @@ const Index = () => {
       </header>
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-          <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
+          <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto bg-muted">
             <h2 className="text-lg font-semibold flex items-center"><PanelLeft className="mr-2 h-5 w-5"/>Controls</h2>
             <ImageUploader 
               onImageUpload={handleImageUpload}
@@ -184,7 +185,7 @@ const Index = () => {
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={60} minSize={40}>
-          <div className="flex items-center justify-center h-full bg-muted/20 p-4 overflow-auto">
+          <div className="flex items-center justify-center h-full bg-muted p-4 overflow-auto">
              <Canvas
                 originalImage={originalImage}
                 processedImage={processedImage}
@@ -197,7 +198,7 @@ const Index = () => {
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-          <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
+          <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto bg-muted">
             <h2 className="text-lg font-semibold flex items-center"><PanelRight className="mr-2 h-5 w-5"/>Properties</h2>
             {selectedLayerData ? (
               <TextEditor
