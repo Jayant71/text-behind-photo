@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useState } from "react";
 import { ProcessedImage, TextLayer } from "@/pages/Index";
 import { Download } from "lucide-react";
@@ -33,7 +32,7 @@ export const Canvas = ({
     drawCanvas();
   }, [processedImage, textLayers, selectedLayer]);
 
-  const drawCanvas = () => {
+  const drawCanvas = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -66,9 +65,18 @@ export const Canvas = ({
       return a.zIndex - b.zIndex;
     });
 
-    // Draw background
-    const bgImg = new Image();
-    bgImg.onload = () => {
+    try {
+      // Load background image
+      const bgImg = new Image();
+      bgImg.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        bgImg.onload = resolve;
+        bgImg.onerror = reject;
+        bgImg.src = processedImage.background;
+      });
+
+      // Draw background
       ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
       
       // Draw text layers that are behind person
@@ -76,19 +84,31 @@ export const Canvas = ({
         drawTextLayer(ctx, layer);
       });
 
-      // Draw segmented person
+      // Load and draw segmented person
       const personImg = new Image();
-      personImg.onload = () => {
-        ctx.drawImage(personImg, 0, 0, canvas.width, canvas.height);
-        
-        // Draw text layers that are in front of person
-        sortedLayers.filter(layer => !layer.isBehindPerson).forEach(layer => {
-          drawTextLayer(ctx, layer);
-        });
-      };
-      personImg.src = processedImage.segmentedPerson;
-    };
-    bgImg.src = processedImage.background;
+      personImg.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        personImg.onload = resolve;
+        personImg.onerror = reject;
+        personImg.src = processedImage.segmentedPerson;
+      });
+
+      ctx.drawImage(personImg, 0, 0, canvas.width, canvas.height);
+      
+      // Draw text layers that are in front of person
+      sortedLayers.filter(layer => !layer.isBehindPerson).forEach(layer => {
+        drawTextLayer(ctx, layer);
+      });
+
+    } catch (error) {
+      console.error('Error loading images:', error);
+      // Draw error message
+      ctx.fillStyle = '#ef4444';
+      ctx.font = '20px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Error loading processed images', canvas.width / 2, canvas.height / 2);
+    }
   };
 
   const drawTextLayer = (ctx: CanvasRenderingContext2D, layer: TextLayer) => {
