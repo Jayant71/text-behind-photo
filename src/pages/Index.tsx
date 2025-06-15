@@ -101,10 +101,40 @@ const Index = () => {
   };
 
   const updateTextLayer = (id: string, updates: Partial<TextLayer>) => {
-    setTextLayers(layers => 
-      layers.map(layer => 
-        layer.id === id ? { ...layer, ...updates } : layer
-      )
+    setTextLayers(layers =>
+      layers.map(layer => {
+        if (layer.id !== id) {
+          return layer;
+        }
+
+        const newLayer = { ...layer, ...updates };
+
+        // If content, font size, or font family changes, dynamically resize the text box
+        if (
+          (updates.content !== undefined ||
+            updates.fontSize !== undefined ||
+            updates.fontFamily !== undefined) &&
+          updates.width === undefined // Avoid overriding manual canvas resize
+        ) {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.font = `${newLayer.fontSize}px ${newLayer.fontFamily}`;
+            const lines = newLayer.content.split("\n");
+            const widths = lines.map((line) => ctx.measureText(line).width);
+            const maxWidth = Math.max(0, ...widths);
+
+            const lineHeight = newLayer.fontSize * 1.2;
+            const textBlockHeight = (lines.length - 1) * lineHeight + newLayer.fontSize;
+            
+            const PADDING = 20;
+            newLayer.width = maxWidth + PADDING;
+            newLayer.height = textBlockHeight + PADDING;
+          }
+        }
+
+        return newLayer;
+      })
     );
   };
 
