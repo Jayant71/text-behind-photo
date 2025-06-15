@@ -58,8 +58,8 @@ const Index = () => {
       console.log('Processing result:', result);
 
       setProcessedImage({
-        segmentedPerson: `data:image/png;base64,${result.segmented_person_image_base64}`,
-        background: `data:image/png;base64,${result.background_image_base64}`,
+        segmentedPerson: result.segmented_person_image_base64,
+        background: result.background_image_base64,
         detectionDetails: result.detection_details,
       });
 
