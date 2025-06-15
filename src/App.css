@@ -5,6 +5,16 @@
   text-align: center;
 }
 
+/* Mobile optimizations */
+@media (max-width: 767px) {
+  #root {
+    padding: 0;
+    max-width: 100%;
+    margin: 0;
+    text-align: left;
+  }
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -39,4 +49,87 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Canvas and mobile optimizations */
+.canvas-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Mobile specific styles for better layout */
+@media (max-width: 767px) {
+  html, body, #root {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Touch-friendly mobile interactions */
+  .mobile-scrollable-content {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Improve touch targets for mobile */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Optimize slider for touch */
+  .slider-mobile {
+    height: 20px;
+  }
+
+  /* Improve input sizing on mobile */
+  input[type="number"], 
+  input[type="text"], 
+  textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Canvas touch improvements */
+  canvas {
+    touch-action: none; /* Prevent all default touch behaviors */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Ensure canvas is properly positioned for touch events */
+    position: relative;
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* Ensure canvas container doesn't interfere with touch */
+  .canvas-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Remove any padding/margin that could affect touch positioning */
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Prevent viewport meta tag issues with touch positioning */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Improve touch precision on mobile */
+  html {
+    -ms-touch-action: manipulation;
+    touch-action: manipulation;
+  }
 }

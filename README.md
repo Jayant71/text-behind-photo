@@ -21,6 +21,11 @@ Text Behind Photo is a web application that allows users to upload an image, aut
 *   **Interactive Canvas**: See your changes in real-time on an interactive canvas.
 *   **Theme Support**: Switch between light and dark themes for comfortable viewing.
 *   **Responsive Design**: UI panels are resizable for optimal workflow on different screen sizes.
+*   **Mobile Optimized**: 
+    *   Touch-friendly interface with mobile-specific layouts
+    *   Slide-out panels for tools and text editing
+    *   Optimized canvas interactions for touch devices
+    *   Mobile-first responsive design with proper touch targets
 
 ## Technologies Used
 

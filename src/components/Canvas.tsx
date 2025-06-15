@@ -3,6 +3,8 @@ import { ProcessedImage, TextLayer } from "@/pages/Index";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface CanvasProps {
   originalImage: string | null;
@@ -32,6 +34,7 @@ export const Canvas = ({
   originalImageDimensions,
 }: CanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isMobile = useIsMobile();
   const [interactionState, setInteractionState] = useState<InteractionState>({
     type: null,
     layerId: null,
@@ -195,18 +198,20 @@ export const Canvas = ({
       ctx.lineWidth = 2;
       ctx.strokeRect(-layer.width / 2, -layer.height / 2, layer.width, layer.height);
       
-      // Draw resize handles
-      const handleSize = 8;
+      // Draw resize handles - make them larger on mobile for better touch interaction
+      const handleSize = isMobile ? 16 : 8;
       ctx.fillStyle = '#3b82f6';
       ctx.fillRect(-layer.width / 2 - handleSize / 2, -layer.height / 2 - handleSize / 2, handleSize, handleSize);
       ctx.fillRect(layer.width / 2 - handleSize / 2, -layer.height / 2 - handleSize / 2, handleSize, handleSize);
       ctx.fillRect(-layer.width / 2 - handleSize / 2, layer.height / 2 - handleSize / 2, handleSize, handleSize);
       ctx.fillRect(layer.width / 2 - handleSize / 2, layer.height / 2 - handleSize / 2, handleSize, handleSize);
       
-      // Draw rotation handle
-      ctx.beginPath();
-      ctx.arc(0, -layer.height / 2 - 20, 6, 0, 2 * Math.PI);
-      ctx.fill();
+      // Draw rotation handle - only on desktop for simplicity
+      if (!isMobile) {
+        ctx.beginPath();
+        ctx.arc(0, -layer.height / 2 - 20, 6, 0, 2 * Math.PI);
+        ctx.fill();
+      }
     }
     
     ctx.restore();
@@ -217,10 +222,67 @@ export const Canvas = ({
     if (!canvas) return { x: 0, y: 0 };
     
     const rect = canvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    
+    // Clamp coordinates to canvas bounds
+    const clampedX = Math.max(0, Math.min(canvas.width, x));
+    const clampedY = Math.max(0, Math.min(canvas.height, y));
+    
+    return { x: clampedX, y: clampedY };
+  };
+
+  // Touch event helpers for mobile
+  const getTouchPos = (e: React.TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
+    const touch = e.touches[0] || e.changedTouches[0];
+    if (!touch) return { x: 0, y: 0 };
+    
+    // Get the canvas bounding rectangle with higher precision
+    const rect = canvas.getBoundingClientRect();
+    
+    // Calculate touch position relative to the canvas element
+    const canvasX = touch.clientX - rect.left;
+    const canvasY = touch.clientY - rect.top;
+    
+    // Calculate the scale factors between canvas logical size and display size
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    // Scale to canvas coordinate system
+    const x = canvasX * scaleX;
+    const y = canvasY * scaleY;
+    
+    // Clamp coordinates to canvas bounds
+    const clampedX = Math.max(0, Math.min(canvas.width, x));
+    const clampedY = Math.max(0, Math.min(canvas.height, y));
+    
+    // Debug logging (remove in production)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Touch Debug:', {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        rectLeft: rect.left,
+        rectTop: rect.top,
+        canvasX,
+        canvasY,
+        scaleX,
+        scaleY,
+        finalX: clampedX,
+        finalY: clampedY,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        rectWidth: rect.width,
+        rectHeight: rect.height
+      });
+    }
+    
+    return { x: clampedX, y: clampedY };
   };
 
   const getHandleCoords = (handleName: string, layer: TextLayer): { x: number; y: number } | null => {
@@ -250,8 +312,10 @@ export const Canvas = ({
   }
 
   const getHandleAtPos = (pos: { x: number; y: number }, layer: TextLayer) => {
-    const handleSize = 12;
-    const handleNames = ["top-left", "top-right", "bottom-left", "bottom-right", "rotate"];
+    const handleSize = isMobile ? 32 : 12; // Larger touch targets on mobile
+    const handleNames = isMobile 
+      ? ["top-left", "top-right", "bottom-left", "bottom-right"] // Skip rotate handle on mobile
+      : ["top-left", "top-right", "bottom-left", "bottom-right", "rotate"];
 
     for (const name of handleNames) {
       const handlePos = getHandleCoords(name, layer);
@@ -283,12 +347,15 @@ export const Canvas = ({
       const rotatedX = px * cos - py * sin;
       const rotatedY = px * sin + py * cos;
 
-      // Check if rotated point is inside the un-rotated bounding box
+      // Add some tolerance on mobile for easier selection
+      const tolerance = isMobile ? 10 : 0;
+
+      // Check if rotated point is inside the un-rotated bounding box (with tolerance)
       if (
-        rotatedX >= -width / 2 &&
-        rotatedX <= width / 2 &&
-        rotatedY >= -height / 2 &&
-        rotatedY <= height / 2
+        rotatedX >= -width / 2 - tolerance &&
+        rotatedX <= width / 2 + tolerance &&
+        rotatedY >= -height / 2 - tolerance &&
+        rotatedY <= height / 2 + tolerance
       ) {
         return layer.id;
       }
@@ -391,6 +458,113 @@ export const Canvas = ({
     setInteractionState({ type: null, layerId: null, handle: null, startPos: { x: 0, y: 0 }, startLayer: null });
   };
 
+  // Touch event handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent scrolling and zooming
+    e.stopPropagation(); // Prevent event bubbling
+    
+    const pos = getTouchPos(e);
+    let clickedLayerId: string | null = null;
+    let handle: string | null = null;
+
+    if (selectedLayer) {
+      const layer = textLayers.find((l) => l.id === selectedLayer);
+      if (layer) {
+        handle = getHandleAtPos(pos, layer);
+        if (handle) {
+          clickedLayerId = selectedLayer;
+        }
+      }
+    }
+    
+    if (!handle) {
+      clickedLayerId = getClickedLayer(pos);
+    }
+
+    onLayerSelect(clickedLayerId);
+
+    if (clickedLayerId) {
+      const layer = textLayers.find((l) => l.id === clickedLayerId);
+      if (layer) {
+        // On mobile, allow both move and resize interactions
+        const interactionType = handle ? 'resize' : 'move';
+        setInteractionState({
+          type: interactionType,
+          layerId: clickedLayerId,
+          handle: handle,
+          startPos: pos,
+          startLayer: layer,
+        });
+      }
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const { type, layerId, handle, startPos, startLayer } = interactionState;
+    if (!type || !layerId || !startLayer) return;
+
+    const pos = getTouchPos(e);
+
+    if (type === 'move') {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      const dx = pos.x - startPos.x;
+      const dy = pos.y - startPos.y;
+      
+      // Ensure the text layer stays within canvas bounds
+      const newX = Math.max(0, Math.min(canvas.width - startLayer.width, startLayer.x + dx));
+      const newY = Math.max(0, Math.min(canvas.height - startLayer.height, startLayer.y + dy));
+      
+      onLayerUpdate(layerId, { x: newX, y: newY });
+    } else if (type === 'resize' && handle) {
+      // Allow resize on mobile for corner handles
+      const oppositeHandleMap: Record<string, string> = {
+        "top-left": "bottom-right", "top-right": "bottom-left",
+        "bottom-left": "top-right", "bottom-right": "top-left",
+      };
+      const anchorHandleName = oppositeHandleMap[handle];
+      if (!anchorHandleName) return;
+
+      const anchorPos = getHandleCoords(anchorHandleName, startLayer);
+      if (!anchorPos) return;
+
+      const angle = startLayer.rotation * Math.PI / 180;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const negAngle = -angle;
+      const cosN = Math.cos(negAngle);
+      const sinN = Math.sin(negAngle);
+
+      const vecX = pos.x - anchorPos.x;
+      const vecY = pos.y - anchorPos.y;
+
+      const newWidth = Math.max(20, Math.abs(vecX * cosN - vecY * sinN)); // Minimum width for touch
+      const newHeight = Math.max(20, Math.abs(vecX * sinN + vecY * cosN)); // Minimum height for touch
+
+      const newCenterX = anchorPos.x + vecX / 2;
+      const newCenterY = anchorPos.y + vecY / 2;
+      
+      const toTopLeftX = (-newWidth / 2) * cos - (-newHeight / 2) * sin;
+      const toTopLeftY = (-newWidth / 2) * sin + (-newHeight / 2) * cos;
+      const newX = newCenterX + toTopLeftX;
+      const newY = newCenterY + toTopLeftY;
+      
+      const newFontSize = Math.max(12, Math.round(newHeight / (startLayer.content.split('\n').length || 1) * 0.8));
+
+      onLayerUpdate(layerId, { width: newWidth, height: newHeight, x: newX, y: newY, fontSize: newFontSize });
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setInteractionState({ type: null, layerId: null, handle: null, startPos: { x: 0, y: 0 }, startLayer: null });
+  };
+
   const downloadImage = () => {
     const canvas = canvasRef.current;
     if (!canvas || !originalImageDimensions) return;
@@ -425,29 +599,54 @@ export const Canvas = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="text-sm text-muted-foreground">
-          {originalImage ? "Click and drag text layers to position them" : "Upload an image to start editing"} 
+      <div className={cn(
+        "flex justify-between items-center",
+        isMobile ? "flex-col space-y-2" : "flex-row"
+      )}>
+        <div className={cn(
+          "text-muted-foreground",
+          isMobile ? "text-xs text-center" : "text-sm"
+        )}>
+          {originalImage ? (isMobile ? "Tap and drag text to move" : "Click and drag text layers to position them") : "Upload an image to start editing"} 
         </div>
         <Button
           onClick={downloadImage}
           disabled={!processedImage}
           className="bg-green-600 hover:bg-green-700"
+          size={isMobile ? "sm" : "default"}
         >
-          <Download className="w-4 h-4 mr-2" />
+          <Download className={cn("mr-2", isMobile ? "w-3 h-3" : "w-4 h-4")} />
           Download
         </Button>
       </div>
       
-      <div className="border border-border rounded-lg overflow-hidden shadow-md bg-card">
+      <div className={cn(
+        "border border-border rounded-lg overflow-hidden shadow-md bg-card",
+        isMobile && "border-2"
+      )}>
         <canvas
           ref={canvasRef}
-          // width and height are now set dynamically in useEffect
-          className="max-w-full max-h-full h-auto cursor-pointer display-block" // Added display-block to prevent extra space below canvas
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          className={cn(
+            "max-w-full max-h-full h-auto cursor-pointer block",
+            isMobile && "touch-none w-full" // Prevent default touch behaviors and ensure full width
+          )}
+          style={{ 
+            imageRendering: 'crisp-edges',
+            ...(isMobile && {
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
+              touchAction: 'none'
+            })
+          }}
+          onMouseDown={!isMobile ? handleMouseDown : undefined}
+          onMouseMove={!isMobile ? handleMouseMove : undefined}
+          onMouseUp={!isMobile ? handleMouseUp : undefined}
+          onMouseLeave={!isMobile ? handleMouseUp : undefined}
+          onTouchStart={isMobile ? handleTouchStart : undefined}
+          onTouchMove={isMobile ? handleTouchMove : undefined}
+          onTouchEnd={isMobile ? handleTouchEnd : undefined}
+          onTouchCancel={isMobile ? handleTouchEnd : undefined}
         />
       </div>
     </div>
