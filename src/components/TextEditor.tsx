@@ -1,4 +1,3 @@
-
 import { TextLayer } from "@/pages/Index";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +23,17 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
     "Trebuchet MS",
     "Arial Black",
     "Courier New",
+  ];
+
+  const presetColors = [
+    "#000000",
+    "#ffffff",
+    "#ef4444", // red-500
+    "#22c55e", // green-500
+    "#3b82f6", // blue-500
+    "#eab308", // yellow-500
+    "#8b5cf6", // violet-500
+    "#ec4899", // pink-500
   ];
 
   return (
@@ -96,6 +106,17 @@ export const TextEditor = ({ layer, onUpdate }: TextEditorProps) => {
               placeholder="#000000"
               className="flex-1"
             />
+          </div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {presetColors.map((color) => (
+              <button
+                key={color}
+                title={color}
+                className={`w-6 h-6 rounded-full border transition-all ${layer.color.toLowerCase() === color ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
+                style={{ backgroundColor: color }}
+                onClick={() => onUpdate({ color })}
+              />
+            ))}
           </div>
         </div>
 
