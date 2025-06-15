@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ImageUploader } from "@/components/ImageUploader";
 import { Canvas } from "@/components/Canvas";
@@ -46,8 +45,7 @@ const Index = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://jayant17-textbehindphoto-backend.hf.space";
-      const response = await fetch(`${baseUrl}/detect`, {
+      const response = await fetch('https://jayant17-textbehindphoto-backend.hf.space/image/detect', {
         method: 'POST',
         body: formData,
       });
