@@ -47,21 +47,52 @@ export const Canvas = ({
     personImg: HTMLImageElement | null;
   }>({ bgImg: null, personImg: null });
 
+  // Calculate optimal canvas size for large images
+  const getOptimalCanvasSize = (originalWidth: number, originalHeight: number) => {
+    const maxCanvasSize = isMobile ? 800 : 1200; // Smaller max size on mobile
+    const aspectRatio = originalWidth / originalHeight;
+    
+    // If image is already small enough, use original dimensions
+    if (originalWidth <= maxCanvasSize && originalHeight <= maxCanvasSize) {
+      return { width: originalWidth, height: originalHeight, scale: 1 };
+    }
+    
+    // Scale down while maintaining aspect ratio
+    let canvasWidth, canvasHeight;
+    if (originalWidth > originalHeight) {
+      canvasWidth = maxCanvasSize;
+      canvasHeight = maxCanvasSize / aspectRatio;
+    } else {
+      canvasHeight = maxCanvasSize;
+      canvasWidth = maxCanvasSize * aspectRatio;
+    }
+    
+    const scale = canvasWidth / originalWidth;
+    
+    return { 
+      width: Math.round(canvasWidth), 
+      height: Math.round(canvasHeight),
+      scale
+    };
+  };
+
   // Effect to set initial canvas size or when originalImageDimensions changes
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas) {
       if (originalImageDimensions) {
-        canvas.width = originalImageDimensions.width;
-        canvas.height = originalImageDimensions.height;
+        const optimalSize = getOptimalCanvasSize(originalImageDimensions.width, originalImageDimensions.height);
+        canvas.width = optimalSize.width;
+        canvas.height = optimalSize.height;
+        console.log(`Canvas sized from ${originalImageDimensions.width}x${originalImageDimensions.height} to ${optimalSize.width}x${optimalSize.height} (scale: ${optimalSize.scale.toFixed(2)})`);
       } else {
         // Default placeholder size if no image is loaded
-        canvas.width = 500; // Or any other placeholder width
-        canvas.height = 300; // Or any other placeholder height
+        canvas.width = 500;
+        canvas.height = 300;
       }
       drawCanvas(); // Redraw with new dimensions
     }
-  }, [originalImageDimensions]);
+  }, [originalImageDimensions, isMobile]);
 
   useEffect(() => {
     if (processedImage && originalImageDimensions) {
@@ -76,11 +107,12 @@ export const Canvas = ({
       const checkAllLoaded = () => {
         if (bgLoaded && personLoaded) {
           setLoadedImages({ bgImg, personImg });
-          // Set canvas dimensions here based on the original image
+          // Set canvas dimensions here based on optimal sizing
           const canvas = canvasRef.current;
-          if (canvas) {
-            canvas.width = originalImageDimensions.width;
-            canvas.height = originalImageDimensions.height;
+          if (canvas && originalImageDimensions) {
+            const optimalSize = getOptimalCanvasSize(originalImageDimensions.width, originalImageDimensions.height);
+            canvas.width = optimalSize.width;
+            canvas.height = optimalSize.height;
           }
           toast.success("Canvas images loaded.");
         }
@@ -581,9 +613,30 @@ export const Canvas = ({
       const tempCtx = tempCanvas.getContext('2d');
       if (!tempCtx) return;
 
-      // Draw current canvas content to temp canvas
-      // This ensures we are downloading what is currently rendered at original dimensions
-      tempCtx.drawImage(canvas, 0, 0, originalImageDimensions.width, originalImageDimensions.height);
+      // Calculate scale factor to convert from display canvas to original size
+      const optimalSize = getOptimalCanvasSize(originalImageDimensions.width, originalImageDimensions.height);
+      const scaleToOriginal = originalImageDimensions.width / optimalSize.width;
+
+      // Draw images and text at original resolution
+      if (loadedImages.bgImg && loadedImages.personImg) {
+        const sortedLayers = [...textLayers].sort((a, b) => a.zIndex - b.zIndex);
+        
+        // Draw background at full resolution
+        tempCtx.drawImage(loadedImages.bgImg, 0, 0, originalImageDimensions.width, originalImageDimensions.height);
+
+        // Draw text layers that are behind person (scaled up)
+        sortedLayers
+          .filter((layer) => layer.isBehindPerson)
+          .forEach((layer) => drawTextLayerAtScale(tempCtx, layer, scaleToOriginal));
+
+        // Draw segmented person at full resolution
+        tempCtx.drawImage(loadedImages.personImg, 0, 0, originalImageDimensions.width, originalImageDimensions.height);
+
+        // Draw text layers that are in front of person (scaled up)
+        sortedLayers
+          .filter((layer) => !layer.isBehindPerson)
+          .forEach((layer) => drawTextLayerAtScale(tempCtx, layer, scaleToOriginal));
+      }
 
       const link = document.createElement('a');
       link.download = 'text-behind-image.png';
@@ -595,6 +648,48 @@ export const Canvas = ({
       // Reselect layer
       onLayerSelect(currentSelected);
     }, 100);
+  };
+
+  // Helper function to draw text layer at a specific scale
+  const drawTextLayerAtScale = (ctx: CanvasRenderingContext2D, layer: TextLayer, scale: number) => {
+    ctx.save();
+    
+    // Scale all layer properties
+    const scaledX = layer.x * scale;
+    const scaledY = layer.y * scale;
+    const scaledWidth = layer.width * scale;
+    const scaledHeight = layer.height * scale;
+    const scaledFontSize = layer.fontSize * scale;
+    
+    // Apply transformations
+    ctx.translate(scaledX + scaledWidth / 2, scaledY + scaledHeight / 2);
+    ctx.rotate((layer.rotation * Math.PI) / 180);
+    ctx.globalAlpha = layer.opacity;
+    
+    // Set text properties
+    ctx.font = `${scaledFontSize}px ${layer.fontFamily}`;
+    ctx.fillStyle = layer.color;
+    ctx.textAlign = layer.textAlign || 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Draw text (multiline support)
+    const lines = layer.content.split('\n');
+    const lineHeight = scaledFontSize * 1.2;
+    const totalTextHeight = (lines.length - 1) * lineHeight;
+    const startY = -totalTextHeight / 2;
+    
+    let startX = 0;
+    if (ctx.textAlign === 'left') {
+      startX = -scaledWidth / 2;
+    } else if (ctx.textAlign === 'right') {
+      startX = scaledWidth / 2;
+    }
+
+    lines.forEach((line, index) => {
+      ctx.fillText(line, startX, startY + (index * lineHeight));
+    });
+    
+    ctx.restore();
   };
 
   return (

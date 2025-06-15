@@ -65,6 +65,11 @@ canvas {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  /* Ensure crisp rendering for scaled down images */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 /* Mobile specific styles for better layout */
@@ -109,6 +114,10 @@ canvas {
     position: relative;
     display: block;
     margin: 0 auto;
+    /* Better mobile canvas scaling */
+    width: 100%;
+    height: auto;
+    max-height: 70vh; /* Ensure canvas doesn't take full mobile screen */
   }
 
   /* Ensure canvas container doesn't interfere with touch */
@@ -120,6 +129,11 @@ canvas {
     /* Remove any padding/margin that could affect touch positioning */
     padding: 0;
     margin: 0;
+    /* Better mobile container sizing */
+    max-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Prevent viewport meta tag issues with touch positioning */

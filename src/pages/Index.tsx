@@ -92,23 +92,55 @@ const Index = () => {
     }
   };
 
+  // Calculate canvas scale for text sizing
+  const getCanvasScale = () => {
+    if (!originalImageDimensions) return 1;
+    
+    const maxCanvasSize = isMobile ? 800 : 1200;
+    const { width: originalWidth, height: originalHeight } = originalImageDimensions;
+    
+    // If image is small enough, no scaling needed
+    if (originalWidth <= maxCanvasSize && originalHeight <= maxCanvasSize) {
+      return 1;
+    }
+    
+    // Calculate scale factor
+    const scaleX = maxCanvasSize / originalWidth;
+    const scaleY = maxCanvasSize / originalHeight;
+    return Math.min(scaleX, scaleY);
+  };
+
   const addTextLayer = () => {
+    const canvasScale = getCanvasScale();
+    const baseFontSize = 48;
+    const baseWidth = 200;
+    const baseHeight = 60;
+    const baseX = 100;
+    const baseY = 100;
+    
+    // Scale text properties based on canvas scale
+    // For very large images (small scale), we want larger text
+    // Use inverse relationship so text remains visible
+    const textScale = Math.max(0.5, Math.min(2, 1 / Math.sqrt(canvasScale)));
+    
     const newLayer: TextLayer = {
       id: `text-${Date.now()}`,
       content: "New Text",
-      x: 100,
-      y: 100,
-      fontSize: 48,
+      x: baseX * canvasScale,
+      y: baseY * canvasScale,
+      fontSize: Math.round(baseFontSize * textScale),
       fontFamily: "Arial",
-      color: "hsl(var(--foreground))", // Use foreground color for text
+      color: "hsl(var(--foreground))",
       opacity: 1,
       rotation: 0,
-      width: 200,
-      height: 60,
+      width: Math.round(baseWidth * textScale),
+      height: Math.round(baseHeight * textScale),
       zIndex: textLayers.length,
       isBehindPerson: false,
       textAlign: 'center',
     };
+    
+    console.log(`Adding text layer with scale ${canvasScale.toFixed(2)}, text scale ${textScale.toFixed(2)}, fontSize ${newLayer.fontSize}`);
     
     setTextLayers([...textLayers, newLayer]);
     setSelectedLayer(newLayer.id);

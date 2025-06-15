@@ -26,6 +26,12 @@ Text Behind Photo is a web application that allows users to upload an image, aut
     *   Slide-out panels for tools and text editing
     *   Optimized canvas interactions for touch devices
     *   Mobile-first responsive design with proper touch targets
+*   **Smart Image Scaling**:
+    *   Automatically scales down large images (>2000x2000px) for optimal editing performance
+    *   Maintains aspect ratio and image quality
+    *   Intelligent text sizing that adapts to image scale
+    *   Downloads maintain full original resolution and quality
+    *   Visual feedback when images are scaled for editing
 
 ## Technologies Used
 
