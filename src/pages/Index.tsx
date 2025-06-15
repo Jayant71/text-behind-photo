@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { PanelLeft, PanelRight, Text, Layers as LayersIcon, PlusCircle } from "lucide-react";
+import { PanelLeft, PanelRight, Text, Layers as LayersIcon, PlusCircle, Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export interface TextLayer {
   id: string;
@@ -38,6 +40,7 @@ const Index = () => {
   const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [fileName, setFileName] = useState<string>('text-behind-image.png');
 
   const handleImageUpload = async (imageUrl: string, file: File) => {
     setOriginalImage(imageUrl);
@@ -109,8 +112,17 @@ const Index = () => {
 
         const newLayer = { ...layer, ...updates };
 
+        // Manual resize from canvas -> update font size
+        if (updates.width !== undefined || updates.height !== undefined) {
+            const oldArea = layer.width * layer.height;
+            const newArea = newLayer.width * newLayer.height;
+            if (oldArea > 1 && newArea > 1) {
+                const ratio = Math.sqrt(newArea / oldArea);
+                newLayer.fontSize = Math.max(8, Math.round(layer.fontSize * ratio));
+            }
+        }
         // If content, font size, or font family changes, dynamically resize the text box
-        if (
+        else if (
           (updates.content !== undefined ||
             updates.fontSize !== undefined ||
             updates.fontFamily !== undefined) &&
@@ -169,6 +181,33 @@ const Index = () => {
     });
   };
 
+  const handleSaveImage = () => {
+    const canvasElement = document.querySelector('.konvajs-content canvas');
+
+    if (canvasElement && canvasElement instanceof HTMLCanvasElement) {
+      const dataURL = canvasElement.toDataURL('image/png');
+      const link = document.createElement('a');
+      
+      let finalFileName = fileName.trim();
+      if (!finalFileName) {
+        finalFileName = 'text-behind-image';
+      }
+      if (!finalFileName.toLowerCase().endsWith('.png')) {
+        finalFileName += '.png';
+      }
+
+      link.download = finalFileName;
+      link.href = dataURL;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("Image saved successfully!");
+    } else {
+      toast.error("Could not save image. Canvas element not found.");
+      console.error("Could not find the canvas element to save.");
+    }
+  };
+
   const selectedLayerData = selectedLayer ? textLayers.find(l => l.id === selectedLayer) : null;
 
   return (
@@ -176,7 +215,7 @@ const Index = () => {
       <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6 shrink-0">
         <a href="/" className="flex items-center gap-2 font-semibold">
           <Text className="h-6 w-6" />
-          <span>Text Behind Image</span>
+          <span className="text-lg">Text Behind Image</span>
         </a>
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
@@ -198,6 +237,25 @@ const Index = () => {
               <PlusCircle className="mr-2 h-4 w-4"/>
               Add Text
             </Button>
+            
+            {processedImage && (
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="grid gap-2">
+                  <Label htmlFor="filename">Filename</Label>
+                  <Input
+                    id="filename"
+                    value={fileName}
+                    onChange={(e) => setFileName(e.target.value)}
+                    placeholder="my-image.png"
+                  />
+                </div>
+                <Button onClick={handleSaveImage} className="w-full">
+                  <Download className="mr-2 h-4 w-4" />
+                  Save Image
+                </Button>
+              </div>
+            )}
+
             <LayerManager
               textLayers={textLayers}
               selectedLayer={selectedLayer}
