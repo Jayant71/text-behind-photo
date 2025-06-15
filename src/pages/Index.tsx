@@ -54,7 +54,9 @@ const Index = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('https://jayant17-textbehindphoto-backend.hf.space/api/image/detect', {
+      const apiUrl = import.meta.env.VITE_SEGMENT_API_ENDPOINT;
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
       });
